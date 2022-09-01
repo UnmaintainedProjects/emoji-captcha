@@ -500,6 +500,7 @@ dependencies = [
  "actix-files",
  "actix-web",
  "image",
+ "mime",
  "rand",
  "tokio",
  "uuid",

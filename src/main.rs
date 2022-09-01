@@ -88,6 +88,7 @@ async fn handle_request() -> impl Responder {
         .write_to(&mut Cursor::new(&mut body), image::ImageOutputFormat::Png)
         .unwrap();
     HttpResponse::Ok()
+        .content_type(mime::IMAGE_PNG)
         .body(body)
         .customize()
         .insert_header((
