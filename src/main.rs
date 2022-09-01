@@ -8,9 +8,10 @@ use image::Rgba;
 use image::RgbaImage;
 use rand::seq::SliceRandom;
 use std::env::var;
-use std::fs::read_dir;
+use std::fs::read_to_string;
 use std::io;
 use std::io::Cursor;
+use std::path::Path;
 
 static mut EMOJIS: Vec<(String, String)> = vec![];
 static POSITIONS: [(i64, i64); 6] = [
@@ -24,26 +25,24 @@ static POSITIONS: [(i64, i64); 6] = [
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-    let files = read_dir("emoji-data-ios/img-apple-160")?
-        .map(|res| res.map(|e| e.path().into_os_string().into_string().unwrap()))
-        .collect::<io::Result<Vec<_>>>()?;
-    let codes = files
+    let codes = read_to_string("allowed-emojis.txt")?
+        .split("\n")
+        .filter(|c| !c.is_empty() && c.to_lowercase() != "2705" && c.to_lowercase() != "274c")
+        .map(|c| c.to_string())
+        .collect::<Vec<_>>();
+    let files = codes
         .iter()
-        .map(|e| {
-            e.split("/")
-                .last()
+        .map(|c| {
+            Path::new("./emoji-data-ios/img-apple-160")
+                .join(c.to_lowercase().to_owned() + ".png")
+                .into_os_string()
+                .into_string()
                 .unwrap()
-                .split_once(".")
-                .unwrap()
-                .0
-                .to_string()
         })
         .collect::<Vec<_>>();
     for (i, c) in codes.iter().enumerate() {
-        if !c.contains("1f1") {
-            unsafe {
-                EMOJIS.push((c.to_owned(), files[i].to_owned()));
-            }
+        unsafe {
+            EMOJIS.push((c.to_owned(), files[i].to_owned()));
         }
     }
     HttpServer::new(|| App::new().service(handle_request))
