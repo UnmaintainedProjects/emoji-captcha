@@ -1,26 +1,17 @@
 use actix_web::get;
 use actix_web::App;
+use actix_web::HttpResponse;
 use actix_web::HttpServer;
 use actix_web::Responder;
 use image::imageops;
 use image::Rgba;
 use image::RgbaImage;
-use lazy_static::lazy_static;
 use rand::seq::SliceRandom;
 use std::env::var;
 use std::fs::read_dir;
-use std::fs::remove_file;
 use std::io;
-use std::sync::Mutex;
-use std::thread;
-use std::time::Duration;
-use uuid::Uuid;
+use std::io::Cursor;
 
-lazy_static! {
-    static ref MUTEX: Mutex<i32> = Mutex::new(0);
-}
-
-static mut DELETION_QUEUE: Vec<String> = vec![];
 static mut EMOJIS: Vec<(String, String)> = vec![];
 static POSITIONS: [(i64, i64); 6] = [
     (50, 50),
@@ -55,15 +46,6 @@ async fn main() -> io::Result<()> {
             }
         }
     }
-    thread::spawn(move || loop {
-        let _ = MUTEX.lock();
-        thread::sleep(Duration::from_secs(5));
-        unsafe {
-            while let Some(path) = DELETION_QUEUE.pop() {
-                remove_file(path).unwrap_or_default();
-            }
-        }
-    });
     HttpServer::new(|| App::new().service(handle_request))
         .bind((
             match var("SERVER_ADDR") {
@@ -81,7 +63,6 @@ async fn main() -> io::Result<()> {
 
 #[get("/")]
 async fn handle_request() -> impl Responder {
-    let _ = MUTEX.lock();
     let mut emojis = unsafe {
         EMOJIS
             .choose_multiple(&mut rand::thread_rng(), 9)
@@ -101,13 +82,13 @@ async fn handle_request() -> impl Responder {
         let (x, y) = POSITIONS[i];
         imageops::overlay(&mut image, &mut emoji, x, y)
     }
-    let path = format!("{}.png", Uuid::new_v4().to_string());
-    unsafe {
-        DELETION_QUEUE.push(path.clone());
-    }
-    image.save(&path).unwrap();
     emojis.shuffle(&mut rand::thread_rng());
-    actix_files::NamedFile::open(path.as_str())
+    let mut body: Vec<u8> = Vec::new();
+    image
+        .write_to(&mut Cursor::new(&mut body), image::ImageOutputFormat::Png)
+        .unwrap();
+    HttpResponse::Ok()
+        .body(body)
         .customize()
         .insert_header((
             "x-emojis",
