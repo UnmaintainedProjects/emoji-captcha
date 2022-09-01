@@ -7,6 +7,7 @@ use image::Rgba;
 use image::RgbaImage;
 use lazy_static::lazy_static;
 use rand::seq::SliceRandom;
+use std::env::var;
 use std::fs::read_dir;
 use std::fs::remove_file;
 use std::io;
@@ -64,7 +65,16 @@ async fn main() -> io::Result<()> {
         }
     });
     HttpServer::new(|| App::new().service(handle_request))
-        .bind(("127.0.0.1", 8080))? // TODO: the addr might be configurable
+        .bind((
+            match var("SERVER_ADDR") {
+                Ok(addr) => addr,
+                Err(_) => "127.0.0.1".to_string(),
+            },
+            match var("SERVER_PORT") {
+                Ok(port) => port.parse::<u16>().unwrap(),
+                Err(_) => 8080,
+            },
+        ))?
         .run()
         .await
 }
