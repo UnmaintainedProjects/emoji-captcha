@@ -65,7 +65,7 @@ async fn main() -> io::Result<()> {
 async fn handle_request() -> impl Responder {
     let mut emojis = unsafe {
         EMOJIS
-            .choose_multiple(&mut rand::thread_rng(), 9)
+            .choose_multiple(&mut rand::thread_rng(), 15)
             .cloned()
             .collect::<Vec<_>>()
     };
