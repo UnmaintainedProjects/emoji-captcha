@@ -5,13 +5,19 @@ use actix_web::Responder;
 use image::imageops;
 use image::Rgba;
 use image::RgbaImage;
+use lazy_static::lazy_static;
 use rand::seq::SliceRandom;
 use std::fs::read_dir;
 use std::fs::remove_file;
 use std::io;
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
+
+lazy_static! {
+    static ref MUTEX: Mutex<i32> = Mutex::new(0);
+}
 
 static mut DELETION_QUEUE: Vec<String> = vec![];
 static mut EMOJIS: Vec<(String, String)> = vec![];
@@ -49,7 +55,7 @@ async fn main() -> io::Result<()> {
         }
     }
     thread::spawn(move || loop {
-        // TODO: we need a mutex here
+        let _ = MUTEX.lock();
         thread::sleep(Duration::from_secs(5));
         unsafe {
             while let Some(path) = DELETION_QUEUE.pop() {
@@ -65,6 +71,7 @@ async fn main() -> io::Result<()> {
 
 #[get("/")]
 async fn handle_request() -> impl Responder {
+    let _ = MUTEX.lock();
     let mut emojis = unsafe {
         EMOJIS
             .choose_multiple(&mut rand::thread_rng(), 9)
