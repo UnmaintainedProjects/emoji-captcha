@@ -1,0 +1,3 @@
+[submodule "emoji-data-ios"]
+	path = emoji-data-ios
+	url = https://github.com/roj1512/emoji-data-ios
