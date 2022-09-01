@@ -1,8 +1,9 @@
 Emoji CAPTCHA
 -------------
 
-A CAPTCHA implementation based on identifying emojis. This was exclusively
-developed to be used in Telegram, but might be used anywhere else possible.
+A CAPTCHA implementation based on identifying emojis
+
+This was exclusively developed to be used in Telegram, but might be used anywhere else.
 
 Brief Description
 -----------------
